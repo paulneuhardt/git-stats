@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+
+import json
+import re
+import sys
+import git
+import pprint
+
+pprint = pprint.PrettyPrinter().pprint
+
+sob_email = re.compile('.+<(.+@.+)>')
+
+# contains list of emails
+members = [
+    ]
+
+def list_signed_offs(message):
+    sob = []
+    for line in message.splitlines():
+        if line.startswith('Signed-off-by:'):
+            m = sob_email.match(line)
+            if not m:
+                continue
+            sob.append(m.group(1))
+    return sob
+
+def team_commits(refspec):
+    repo = git.Repo('.')
+    it = repo.iter_commits(refspec)
+    for commit in it:
+        if len(commit.parents) > 1:
+            continue
+
+        is_author = commit.author.email in members
+        is_committer = commit.committer.email in members
+
+        sob_list = list_signed_offs(commit.message)
+        is_non_author_sob = any([sob != commit.author.email and sob in members for sob in sob_list])
+
+        yield((str(commit), is_author, is_committer, is_non_author_sob))
+
+def main(refspec):
+    num_author = 0
+    num_non_author_sob = 0
+
+    commits = team_commits(refspec)
+    for commit in commits:
+        sha, is_author, is_committer, is_non_author_sob = commit
+
+        if is_author:
+            num_author = num_author + 1
+        if is_non_author_sob:
+            num_non_author_sob = num_non_author_sob + 1
+
+    print('Authored: %d Non-author-sob: %d' % (num_author, num_non_author_sob))
+
+if __name__ == '__main__':
+    main(sys.argv[1])
