@@ -22,7 +22,7 @@ def list_signed_offs(message, author):
             m = sob_email.match(line)
             if not m:
                 continue
-            if m.group(1) != author:
+            if m.group(1) != author and m.group(1) not in sob:
                 sob.append(m.group(1))
     return sob
 
