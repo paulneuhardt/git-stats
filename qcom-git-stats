@@ -59,9 +59,16 @@ def main(args):
         with open(f.name) as file:
             developers.update(yaml.safe_load(file.read()))
 
+    if args.verbose:
+        pprint(developers)
+
     commits = team_commits(args.refspec)
     for commit in commits:
         sha, author, committer, non_author_sob = commit
+
+        if args.verbose:
+            if author or committer or non_author_sob:
+                print(commit)
 
         if author:
             num_author = num_author + 1
@@ -72,6 +79,8 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--verbose",
+                        help="enable verbose output", action="store_true")
     parser.add_argument("-i", "--identity",
                         help="Identity files",
                         type=argparse.FileType('r'),
