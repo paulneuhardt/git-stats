@@ -55,6 +55,8 @@ def team_commits(refspec):
 def main(args):
     num_author = 0
     num_non_author_sob = 0
+    authors = {}
+    sobs = {}
 
     for f in args.identity:
         with open(f.name) as file:
@@ -73,10 +75,16 @@ def main(args):
 
         if author:
             num_author = num_author + 1
+            authors[author['name']] = authors.get(author['name'], 0) + 1
         if non_author_sob:
             num_non_author_sob = num_non_author_sob + 1
+            for a in non_author_sob:
+                sobs[a['name']] = sobs.get(a['name'], 0) + 1
 
-    print('Authored: %d Non-author-sob: %d' % (num_author, num_non_author_sob))
+    print('Authored Total: %d' % num_author)
+    for n in sorted(authors, key=authors.get, reverse=True): print("%s: %s" % (n, authors[n]))
+    print('\nNon-author-sob Total: %d' % num_non_author_sob)
+    for n in sorted(sobs, key=sobs.get, reverse=True): print("%s: %s" % (n, sobs[n]))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
