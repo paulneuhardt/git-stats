@@ -5,24 +5,35 @@ import re
 import sys
 import git
 import pprint
+import argparse
+import yaml
+import datetime
 
 pprint = pprint.PrettyPrinter().pprint
 
 sob_email = re.compile('.+<(.+@.+)>')
+developers = {}
 
-# contains list of emails
-members = [
-    ]
-
-def list_signed_offs(message):
+def list_signed_offs(message, author):
     sob = []
     for line in message.splitlines():
         if line.startswith('Signed-off-by:'):
             m = sob_email.match(line)
             if not m:
                 continue
-            sob.append(m.group(1))
+            if m.group(1) != author:
+                sob.append(m.group(1))
     return sob
+
+# returns dev information if the group name corresponds to email,date, or None
+def check_developer(email, date):
+    for d in developers:
+        if email in developers[d]['emails']:
+            for i in sorted(developers[d]['groups'], key=lambda x: x[list(x.keys())[0]]['start'], reverse=True):
+                group = list(i.keys())[0]
+                if datetime.date.fromtimestamp(date) > i[group]['start']:
+                    return { 'name': d, 'group': group }
+    return None
 
 def team_commits(refspec):
     repo = git.Repo('.')
@@ -31,28 +42,42 @@ def team_commits(refspec):
         if len(commit.parents) > 1:
             continue
 
-        is_author = commit.author.email in members
-        is_committer = commit.committer.email in members
+        author = check_developer(commit.author.email, commit.authored_date)
+        committer = check_developer(commit.committer.email, commit.committed_date)
 
-        sob_list = list_signed_offs(commit.message)
-        is_non_author_sob = any([sob != commit.author.email and sob in members for sob in sob_list])
+        sob_list = list_signed_offs(commit.message, commit.author.email)
+        non_author_sob = list(map(lambda s: check_developer(s, commit.authored_date), sob_list))
+        non_author_sob = list(filter(None, non_author_sob))
 
-        yield((str(commit), is_author, is_committer, is_non_author_sob))
+        yield((str(commit), author, committer, non_author_sob))
 
-def main(refspec):
+def main(args):
     num_author = 0
     num_non_author_sob = 0
 
-    commits = team_commits(refspec)
-    for commit in commits:
-        sha, is_author, is_committer, is_non_author_sob = commit
+    for f in args.identity:
+        with open(f.name) as file:
+            developers.update(yaml.safe_load(file.read()))
 
-        if is_author:
+    commits = team_commits(args.refspec)
+    for commit in commits:
+        sha, author, committer, non_author_sob = commit
+
+        if author:
             num_author = num_author + 1
-        if is_non_author_sob:
+        if non_author_sob:
             num_non_author_sob = num_non_author_sob + 1
 
     print('Authored: %d Non-author-sob: %d' % (num_author, num_non_author_sob))
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--identity",
+                        help="Identity files",
+                        type=argparse.FileType('r'),
+                        nargs='*')
+    parser.add_argument("-r", "--refspec",
+                        help="refspec to extract commits",
+                        type=str)
+
+    main(parser.parse_args())
