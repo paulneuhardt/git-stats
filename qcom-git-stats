@@ -13,6 +13,7 @@ pprint = pprint.PrettyPrinter().pprint
 
 sob_email = re.compile('.+<(.+@.+)>')
 developers = {}
+groups = []
 
 def list_signed_offs(message, author):
     sob = []
@@ -32,6 +33,8 @@ def check_developer(email, date):
             for i in sorted(developers[d]['groups'], key=lambda x: x[list(x.keys())[0]]['start'], reverse=True):
                 group = list(i.keys())[0]
                 if datetime.date.fromtimestamp(date) > i[group]['start']:
+                    if groups and not group in groups:
+                        return None
                     return { 'name': d, 'group': group }
     return None
 
@@ -62,8 +65,13 @@ def main(args):
         with open(f.name) as file:
             developers.update(yaml.safe_load(file.read()))
 
+    if args.groups:
+        for g in args.groups:
+            groups.append(g)
+
     if args.verbose:
         pprint(developers)
+        pprint(groups)
 
     commits = team_commits(args.refspec)
     for commit in commits:
@@ -93,6 +101,10 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--identity",
                         help="Identity files",
                         type=argparse.FileType('r'),
+                        nargs='+')
+    parser.add_argument("-g", "--groups",
+                        help="restrict developers from these groups",
+                        type=str,
                         nargs='*')
     parser.add_argument("-r", "--refspec",
                         help="refspec to extract commits",
