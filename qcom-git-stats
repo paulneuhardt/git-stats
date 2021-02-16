@@ -49,7 +49,8 @@ def team_commits(refspec):
         non_author_sob = list(map(lambda s: check_developer(s, commit.authored_date), sob_list))
         non_author_sob = list(filter(None, non_author_sob))
 
-        yield((str(commit), author, committer, non_author_sob))
+        if author or committer or non_author_sob:
+            yield((str(commit), author, committer, non_author_sob))
 
 def main(args):
     num_author = 0
