@@ -46,14 +46,13 @@ def team_commits(refspec):
             continue
 
         author = check_developer(commit.author.email, commit.authored_date)
-        committer = check_developer(commit.committer.email, commit.committed_date)
 
         sob_list = list_signed_offs(commit.message, commit.author.email)
         non_author_sob = list(map(lambda s: check_developer(s, commit.authored_date), sob_list))
         non_author_sob = list(filter(None, non_author_sob))
 
-        if author or committer or non_author_sob:
-            yield((str(commit), author, committer, non_author_sob))
+        if author or non_author_sob:
+            yield((str(commit), author, non_author_sob))
 
 def main(args):
     num_author = 0
@@ -75,10 +74,10 @@ def main(args):
 
     commits = team_commits(args.refspec)
     for commit in commits:
-        sha, author, committer, non_author_sob = commit
+        sha, author, non_author_sob = commit
 
         if args.verbose > 1:
-            if author or committer or non_author_sob:
+            if author or non_author_sob:
                 print(commit)
 
         if author:
