@@ -88,10 +88,11 @@ def main(args):
             for a in non_author_sob:
                 sobs[a['name']] = sobs.get(a['name'], 0) + 1
 
-    print('Authored Total: %d' % num_author)
-    for n in sorted(authors, key=authors.get, reverse=True): print("%s: %s" % (n, authors[n]))
-    print('\nNon-author-sob Total: %d' % num_non_author_sob)
-    for n in sorted(sobs, key=sobs.get, reverse=True): print("%s: %s" % (n, sobs[n]))
+    if 'summary' in args.show:
+        print('Authored Total: %d' % num_author)
+        for n in sorted(authors, key=authors.get, reverse=True): print("%s: %s" % (n, authors[n]))
+        print('\nNon-author-sob Total: %d' % num_non_author_sob)
+        for n in sorted(sobs, key=sobs.get, reverse=True): print("%s: %s" % (n, sobs[n]))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -110,5 +111,11 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--refspec",
                         help="refspec to extract commits",
                         type=str)
+    parser.add_argument("-s", "--show",
+                        help="List of results/stats to display",
+                        type=str,
+                        choices=['summary'],
+                        default=['summary'],
+                        nargs='*')
 
     main(parser.parse_args())
