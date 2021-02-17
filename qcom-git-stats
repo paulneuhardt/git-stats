@@ -69,8 +69,9 @@ def main(args):
             groups.append(g)
 
     if args.verbose:
-        pprint(developers)
-        pprint(groups)
+        print(developers)
+        print(groups)
+        print(args.show)
 
     commits = team_commits(args.refspec)
     for commit in commits:
