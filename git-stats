@@ -115,6 +115,7 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--identity",
                         help="Identity files",
                         type=argparse.FileType('r'),
+                        required=True,
                         nargs='+')
     parser.add_argument("-g", "--groups",
                         help="restrict developers from these groups",
