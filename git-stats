@@ -90,7 +90,7 @@ def main(args):
                 sobs[a['name']] = sobs.get(a['name'], 0) + 1
 
         if 'commits' in args.show and author:
-            print("%s , %s , %s , %s , %s , %s , %s , %s" %
+            print("%s , %s , %s , %s , %s , %s , %s , %s , %s" %
                   (author['group'],
                    sha,
                    author['name'],
@@ -98,7 +98,8 @@ def main(args):
                    datetime.date.fromtimestamp(date).month,
                    stats.total['files'],
                    stats.total['insertions'],
-                   stats.total['deletions']))
+                   stats.total['deletions'],
+                   stats.total['lines']))
 
     if 'summary' in args.show:
         print('Authored Total: %d' % num_author)
