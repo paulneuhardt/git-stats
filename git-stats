@@ -90,6 +90,13 @@ def main(args):
                 sobs[a['name']] = sobs.get(a['name'], 0) + 1
 
         if 'commits' in args.show and author:
+            if 'header' in args.show:
+                try:
+                    csvHeader
+                except NameError:
+                    print("Group, SHA, Author, Year, Month, Files, Insertions, Deletions, Total")
+                    csvHeader = True
+
             print("%s , %s , %s , %s , %s , %s , %s , %s , %s" %
                   (author['group'],
                    sha,
@@ -128,7 +135,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--show",
                         help="List of results/stats to display",
                         type=str,
-                        choices=['summary', 'commits'],
+                        choices=['summary', 'commits', 'header'],
                         default=['summary'],
                         nargs='*')
 
