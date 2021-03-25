@@ -11,7 +11,7 @@ import datetime
 
 pprint = pprint.PrettyPrinter().pprint
 
-sob_email = re.compile('.+<(.+@.+)>')
+sob_email = re.compile('Signed-off-by: (.+)<(.+@.+)>')
 developers = {}
 groups = []
 
@@ -22,14 +22,20 @@ def list_signed_offs(message, author):
             m = sob_email.match(line)
             if not m:
                 continue
-            if m.group(1) != author and m.group(1) not in sob:
-                sob.append(m.group(1))
+            name = m.group(1)
+            email = m.group(2)
+            if email != author and email not in sob:
+                sob.append({'name': name, 'email': email})
     return sob
 
 # returns dev information if the group name corresponds to email,date, or None
-def check_developer(email, date):
+def check_developer(email, date, name):
     for d in developers:
         if re.match("|".join(developers[d]['emails']), email):
+            # for org, we use the name from the commit, since we don't have anything better.
+            if 'organization' in developers[d]:
+                return { 'name': name, 'group': d }
+
             for i in sorted(developers[d]['groups'], key=lambda x: x[list(x.keys())[0]]['start'], reverse=True):
                 group = list(i.keys())[0]
                 if datetime.date.fromtimestamp(date) > i[group]['start']:
@@ -45,10 +51,10 @@ def team_commits(refspec):
         if len(commit.parents) > 1:
             continue
 
-        author = check_developer(commit.author.email, commit.authored_date)
+        author = check_developer(commit.author.email, commit.authored_date, commit.author.name)
 
         sob_list = list_signed_offs(commit.message, commit.author.email)
-        non_author_sob = list(map(lambda s: check_developer(s, commit.authored_date), sob_list))
+        non_author_sob = list(map(lambda s: check_developer(s['email'], commit.authored_date, s['name']), sob_list))
         non_author_sob = list(filter(None, non_author_sob))
 
         if author or non_author_sob:
