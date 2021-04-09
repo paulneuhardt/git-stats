@@ -95,6 +95,28 @@ def main(args):
             for a in non_author_sob:
                 sobs[a['name']] = sobs.get(a['name'], 0) + 1
 
+        if 'signedoff' in args.show and non_author_sob:
+            if 'header' in args.show:
+                try:
+                    csvHeader
+                except NameError:
+                    print("Signed-off Group, Signed-off Name, Author Group, SHA, Author, Year, Month, Files, Insertions, Deletions, Total")
+                    csvHeader = True
+
+            for a in non_author_sob:
+                print("%s, %s, %s , %s , %s , %s , %s , %s , %s , %s , %s" %
+                      (a['group'],
+                       a['name'],
+                       author['group'] if author else 'n/a',
+                       commit,
+                       author['name'] if author else commit.author.name.replace(',', '/'),
+                       datetime.date.fromtimestamp(commit.authored_date).year,
+                       datetime.date.fromtimestamp(commit.authored_date).month,
+                       commit.stats.total['files'],
+                       commit.stats.total['insertions'],
+                       commit.stats.total['deletions'],
+                       commit.stats.total['lines']))
+
         if 'commits' in args.show and author:
             if 'header' in args.show:
                 try:
@@ -141,7 +163,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--show",
                         help="List of results/stats to display",
                         type=str,
-                        choices=['summary', 'commits', 'header'],
+                        choices=['summary', 'commits', 'signedoff', 'header'],
                         default=['summary'],
                         nargs='*')
 
