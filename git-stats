@@ -66,6 +66,8 @@ def main(args):
     authors = {}
     sobs = {}
 
+    # TODO: we should probably split developers and organization in 2
+    # different objects, so that we check developers first, in case there are multiple matches
     for f in args.identity:
         with open(f.name) as file:
             developers.update(yaml.safe_load(file.read()))
