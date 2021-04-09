@@ -58,7 +58,7 @@ def team_commits(refspec):
         non_author_sob = list(filter(None, non_author_sob))
 
         if author or non_author_sob:
-            yield((str(commit), author, non_author_sob, commit.authored_date, commit.stats))
+            yield((commit, author, non_author_sob))
 
 def main(args):
     num_author = 0
@@ -80,8 +80,8 @@ def main(args):
         print(args.show)
 
     commits = team_commits(args.refspec)
-    for commit in commits:
-        sha, author, non_author_sob, date, stats = commit
+    for c in commits:
+        commit, author, non_author_sob = c
 
         if args.verbose > 1:
             if author or non_author_sob:
@@ -105,14 +105,14 @@ def main(args):
 
             print("%s , %s , %s , %s , %s , %s , %s , %s , %s" %
                   (author['group'],
-                   sha,
+                   commit,
                    author['name'],
-                   datetime.date.fromtimestamp(date).year,
-                   datetime.date.fromtimestamp(date).month,
-                   stats.total['files'],
-                   stats.total['insertions'],
-                   stats.total['deletions'],
-                   stats.total['lines']))
+                   datetime.date.fromtimestamp(commit.authored_date).year,
+                   datetime.date.fromtimestamp(commit.authored_date).month,
+                   commit.stats.total['files'],
+                   commit.stats.total['insertions'],
+                   commit.stats.total['deletions'],
+                   commit.stats.total['lines']))
 
     if 'summary' in args.show:
         print('Authored Total: %d' % num_author)
