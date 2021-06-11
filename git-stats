@@ -29,7 +29,8 @@ def list_signed_offs(message, author):
     return sob
 
 # returns dev information if the group name corresponds to email,date, or None
-def check_developer(email, date, name):
+def check_developer(email, timestamp, name):
+    date = datetime.date.fromtimestamp(timestamp)
     for d in developers:
         if re.match("|".join(developers[d]['emails']), email):
             # for org, we use the name from the commit, since we don't have anything better.
@@ -38,7 +39,7 @@ def check_developer(email, date, name):
 
             for i in sorted(developers[d]['groups'], key=lambda x: x[list(x.keys())[0]]['start'], reverse=True):
                 group = list(i.keys())[0]
-                if datetime.date.fromtimestamp(date) > i[group]['start']:
+                if date >= i[group]['start'] and date < i[group].get('end', datetime.date.max):
                     if groups and not group in groups:
                         return None
                     return { 'name': d, 'group': group }
