@@ -53,18 +53,21 @@ def team_commits(refspec):
             continue
 
         author = check_developer(commit.author.email, commit.authored_date, commit.author.name)
+        committer = check_developer(commit.committer.email, commit.committed_date, commit.committer.name)
 
         sob_list = list_signed_offs(commit.message, commit.author.email)
         non_author_sob = list(map(lambda s: check_developer(s['email'], commit.authored_date, s['name']), sob_list))
         non_author_sob = list(filter(None, non_author_sob))
 
-        if author or non_author_sob:
-            yield((commit, author, non_author_sob))
+        if author or non_author_sob or committer:
+            yield((commit, author, committer, non_author_sob))
 
 def main(args):
     num_author = 0
     num_non_author_sob = 0
+    num_committer = 0
     authors = {}
+    committers = {}
     sobs = {}
 
     # TODO: we should probably split developers and organization in 2
@@ -84,10 +87,10 @@ def main(args):
 
     commits = team_commits(args.refspec)
     for c in commits:
-        commit, author, non_author_sob = c
+        commit, author, committer, non_author_sob = c
 
         if args.verbose > 1:
-            if author or non_author_sob:
+            if author or non_author_sob or committer:
                 print(commit)
 
         if author:
@@ -97,6 +100,9 @@ def main(args):
             num_non_author_sob = num_non_author_sob + 1
             for a in non_author_sob:
                 sobs[a['name']] = sobs.get(a['name'], 0) + 1
+        if committer:
+            num_committer = num_committer + 1
+            committers[committer['name']] = committers.get(committer['name'], 0) + 1
 
         if 'signedoff' in args.show and non_author_sob:
             if 'header' in args.show:
@@ -144,6 +150,8 @@ def main(args):
         for n in sorted(authors, key=authors.get, reverse=True): print("%s: %s" % (n, authors[n]))
         print('\nNon-author-sob Total: %d' % num_non_author_sob)
         for n in sorted(sobs, key=sobs.get, reverse=True): print("%s: %s" % (n, sobs[n]))
+        print('\nCommitted Total: %d' % num_committer)
+        for n in sorted(committers, key=committers.get, reverse=True): print("%s: %s" % (n, committers[n]))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
