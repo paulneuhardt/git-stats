@@ -8,6 +8,7 @@ import pprint
 import argparse
 import yaml
 import datetime
+from collections import defaultdict
 
 pprint = pprint.PrettyPrinter().pprint
 
@@ -66,6 +67,7 @@ def main(args):
     num_author = 0
     num_non_author_sob = 0
     num_committer = 0
+    stats = defaultdict(dict)
     authors = {}
     committers = {}
     sobs = {}
@@ -85,6 +87,13 @@ def main(args):
         print(groups)
         print(args.show)
 
+    stats['authors']['insertions'] = 0
+    stats['authors']['deletions'] = 0
+    stats['authors']['lines'] = 0
+    stats['non_author_sob']['insertions'] = 0
+    stats['non_author_sob']['deletions'] = 0
+    stats['non_author_sob']['lines'] = 0
+
     commits = team_commits(args.refspec)
     for c in commits:
         commit, author, committer, non_author_sob = c
@@ -96,10 +105,18 @@ def main(args):
         if author:
             num_author = num_author + 1
             authors[author['name']] = authors.get(author['name'], 0) + 1
+            stats['authors']['insertions'] += commit.stats.total['insertions']
+            stats['authors']['deletions'] += commit.stats.total['deletions']
+            stats['authors']['lines'] += commit.stats.total['lines']
+
         if non_author_sob:
             num_non_author_sob = num_non_author_sob + 1
             for a in non_author_sob:
                 sobs[a['name']] = sobs.get(a['name'], 0) + 1
+            stats['non_author_sob']['insertions'] += commit.stats.total['insertions']
+            stats['non_author_sob']['deletions'] += commit.stats.total['deletions']
+            stats['non_author_sob']['lines'] += commit.stats.total['lines']
+
         if committer:
             num_committer = num_committer + 1
             committers[committer['name']] = committers.get(committer['name'], 0) + 1
@@ -146,9 +163,12 @@ def main(args):
                    commit.stats.total['lines']))
 
     if 'summary' in args.show:
-        print('Authored Total: %d' % num_author)
+        print('Authored Total: %d, %d insertions(+), %d deletions(-), %d total' %
+              (num_author, stats['authors']['insertions'], stats['authors']['deletions'], stats['authors']['lines']))
         for n in sorted(authors, key=authors.get, reverse=True): print("%s: %s" % (n, authors[n]))
-        print('\nNon-author-sob Total: %d' % num_non_author_sob)
+
+        print('\nNon-author-sob Total: %d, %d insertions(+), %d deletions(-), %d total' %
+              (num_non_author_sob, stats['non_author_sob']['insertions'], stats['non_author_sob']['deletions'], stats['non_author_sob']['lines']))
         for n in sorted(sobs, key=sobs.get, reverse=True): print("%s: %s" % (n, sobs[n]))
         print('\nCommitted Total: %d' % num_committer)
         for n in sorted(committers, key=committers.get, reverse=True): print("%s: %s" % (n, committers[n]))
