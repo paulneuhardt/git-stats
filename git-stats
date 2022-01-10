@@ -126,11 +126,11 @@ def main(args):
                 try:
                     csvHeader
                 except NameError:
-                    print("Signed-off Group, Signed-off Name, Author Group, SHA, Author, Year, Month, Files, Insertions, Deletions, Total")
+                    print("Signed-off Group, Signed-off Name, Author Group, SHA, Author, Year (author), Month (author), Year (commit), Month (commit), Files, Insertions, Deletions, Total")
                     csvHeader = True
 
             for a in non_author_sob:
-                print("%s, %s, %s , %s , %s , %s , %s , %s , %s , %s , %s" %
+                print("%s, %s, %s, %s, %s , %s , %s , %s , %s , %s , %s , %s , %s" %
                       (a['group'],
                        a['name'],
                        author['group'] if author else 'n/a',
@@ -138,6 +138,8 @@ def main(args):
                        author['name'] if author else commit.author.name.replace(',', '/'),
                        datetime.date.fromtimestamp(commit.authored_date).year,
                        datetime.date.fromtimestamp(commit.authored_date).month,
+                       datetime.date.fromtimestamp(commit.committed_date).year,
+                       datetime.date.fromtimestamp(commit.committed_date).month,
                        commit.stats.total['files'],
                        commit.stats.total['insertions'],
                        commit.stats.total['deletions'],
@@ -148,15 +150,17 @@ def main(args):
                 try:
                     csvHeader
                 except NameError:
-                    print("Group, SHA, Author, Year, Month, Files, Insertions, Deletions, Total")
+                    print("Group, SHA, Author, Year (author), Month (author), Year (commit), Month (commit), Files, Insertions, Deletions, Total")
                     csvHeader = True
 
-            print("%s , %s , %s , %s , %s , %s , %s , %s , %s" %
+            print("%s , %s , %s , %s , %s , %s , %s , %s , %s , %s , %s" %
                   (author['group'],
                    commit,
                    author['name'],
                    datetime.date.fromtimestamp(commit.authored_date).year,
                    datetime.date.fromtimestamp(commit.authored_date).month,
+                   datetime.date.fromtimestamp(commit.committed_date).year,
+                   datetime.date.fromtimestamp(commit.committed_date).month,
                    commit.stats.total['files'],
                    commit.stats.total['insertions'],
                    commit.stats.total['deletions'],
