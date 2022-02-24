@@ -9,6 +9,7 @@ import argparse
 import yaml
 import datetime
 from collections import defaultdict
+from pathlib import Path
 
 pprint = pprint.PrettyPrinter().pprint
 
@@ -63,6 +64,33 @@ def team_commits(refspec):
         if author or non_author_sob or committer:
             yield((commit, author, committer, non_author_sob))
 
+def get_subsystem(commit):
+    files = set()
+    subsystems = set()
+    for d in commit.diff(commit.parents[0]):
+        files.add(Path(d.a_path).parent)
+        files.add(Path(d.b_path).parent)
+
+    for item in files:
+        if str(item).startswith('include/'):
+            item = str(item).split('/')
+            subsystems.add("%s/%s" % (item[0], item[1]))
+            continue
+
+        while True:
+            try:
+                folder = commit.tree / str(item) / 'Makefile'
+            except:
+                item = item.parent
+                if item == item.parent:
+                    subsystems.add(str(item))
+                    break
+            else:
+                subsystems.add(str(item))
+                break
+
+    return list(subsystems)
+
 def main(args):
     num_author = 0
     num_non_author_sob = 0
@@ -71,6 +99,7 @@ def main(args):
     authors = {}
     committers = {}
     sobs = {}
+    subsystems = {}
 
     # TODO: we should probably split developers and organization in 2
     # different objects, so that we check developers first, in case there are multiple matches
@@ -108,6 +137,8 @@ def main(args):
             stats['authors']['insertions'] += commit.stats.total['insertions']
             stats['authors']['deletions'] += commit.stats.total['deletions']
             stats['authors']['lines'] += commit.stats.total['lines']
+            for s in get_subsystem(commit):
+                subsystems[s] = subsystems.get(s, 0) + 1
 
         if non_author_sob:
             num_non_author_sob = num_non_author_sob + 1
@@ -176,6 +207,8 @@ def main(args):
         for n in sorted(sobs, key=sobs.get, reverse=True): print("%s: %s" % (n, sobs[n]))
         print('\nCommitted Total: %d' % num_committer)
         for n in sorted(committers, key=committers.get, reverse=True): print("%s: %s" % (n, committers[n]))
+        print('\nSubsystems: %d' % sum(subsystems.values()))
+        for n in sorted(subsystems, key=subsystems.get, reverse=True): print("%s: %s" % (n, subsystems[n]))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
