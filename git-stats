@@ -13,7 +13,7 @@ from pathlib import Path
 
 pprint = pprint.PrettyPrinter().pprint
 
-sob_email = re.compile('Signed-off-by: (.+)<(.+@.+)>')
+sob_email = re.compile('Signed-off-by: (.+) <(.+@.+)>')
 developers = {}
 groups = []
 
