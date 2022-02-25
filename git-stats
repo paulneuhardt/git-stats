@@ -68,8 +68,8 @@ def get_subsystem(commit):
     files = set()
     subsystems = set()
     for d in commit.diff(commit.parents[0]):
-        files.add(Path(d.a_path).parent)
-        files.add(Path(d.b_path).parent)
+        files.add(Path(d.a_path))
+        files.add(Path(d.b_path))
 
     for item in files:
         if str(item).startswith('include/'):
@@ -77,16 +77,20 @@ def get_subsystem(commit):
             subsystems.add("%s/%s" % (item[0], item[1]))
             continue
 
+        if str(item) == 'MAINTAINERS':
+            subsystems.add(str(item))
+            continue
+
         while True:
             try:
-                folder = commit.tree / str(item) / 'Makefile'
+                folder = commit.tree / str(item.parent) / 'Makefile'
             except:
                 item = item.parent
                 if item == item.parent:
                     subsystems.add(str(item))
                     break
             else:
-                subsystems.add(str(item))
+                subsystems.add(str(item.parent))
                 break
 
     return list(subsystems)
