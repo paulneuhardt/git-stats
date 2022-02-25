@@ -108,6 +108,13 @@ def main(args):
         with open(f.name) as file:
             developers.update(yaml.safe_load(file.read()))
 
+    # create default group if it's missing
+    for d in developers:
+        if 'groups' not in developers[d].keys():
+            if args.verbose:
+                print("Missing groups for %s, adding default group" % d)
+            developers[d]['groups'] = [{'default' : {'start' : datetime.date(1970,1,1)}}]
+
     if args.groups:
         for g in args.groups:
             groups.append(g)
