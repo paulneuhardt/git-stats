@@ -99,7 +99,8 @@ def main(args):
     authors = {}
     committers = {}
     sobs = {}
-    subsystems = {}
+    subsystems_author = {}
+    subsystems_maintainer = {}
 
     # TODO: we should probably split developers and organization in 2
     # different objects, so that we check developers first, in case there are multiple matches
@@ -137,8 +138,9 @@ def main(args):
             stats['authors']['insertions'] += commit.stats.total['insertions']
             stats['authors']['deletions'] += commit.stats.total['deletions']
             stats['authors']['lines'] += commit.stats.total['lines']
-            for s in get_subsystem(commit):
-                subsystems[s] = subsystems.get(s, 0) + 1
+            if 'subsystems' in args.show:
+                for s in get_subsystem(commit):
+                    subsystems_author[s] = subsystems_author.get(s, 0) + 1
 
         if non_author_sob:
             num_non_author_sob = num_non_author_sob + 1
@@ -147,6 +149,9 @@ def main(args):
             stats['non_author_sob']['insertions'] += commit.stats.total['insertions']
             stats['non_author_sob']['deletions'] += commit.stats.total['deletions']
             stats['non_author_sob']['lines'] += commit.stats.total['lines']
+            if 'subsystems' in args.show:
+                for s in get_subsystem(commit):
+                    subsystems_maintainer[s] = subsystems_maintainer.get(s, 0) + 1
 
         if committer:
             num_committer = num_committer + 1
@@ -207,8 +212,12 @@ def main(args):
         for n in sorted(sobs, key=sobs.get, reverse=True): print("%s: %s" % (n, sobs[n]))
         print('\nCommitted Total: %d' % num_committer)
         for n in sorted(committers, key=committers.get, reverse=True): print("%s: %s" % (n, committers[n]))
-        print('\nSubsystems: %d' % sum(subsystems.values()))
-        for n in sorted(subsystems, key=subsystems.get, reverse=True): print("%s: %s" % (n, subsystems[n]))
+
+    if 'subsystems' in args.show:
+        print('\nSubsystems (author): %d' % sum(subsystems_author.values()))
+        for n in sorted(subsystems_author, key=subsystems_author.get, reverse=True): print("%s: %s" % (n, subsystems_author[n]))
+        print('\nSubsystems (maintainer): %d' % sum(subsystems_maintainer.values()))
+        for n in sorted(subsystems_maintainer, key=subsystems_maintainer.get, reverse=True): print("%s: %s" % (n, subsystems_maintainer[n]))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -231,7 +240,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--show",
                         help="List of results/stats to display",
                         type=str,
-                        choices=['summary', 'commits', 'signedoff', 'header'],
+                        choices=['summary', 'commits', 'signedoff', 'header', 'subsystems'],
                         default=['summary'],
                         nargs='*')
 
