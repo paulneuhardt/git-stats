@@ -13,21 +13,23 @@ from pathlib import Path
 
 pprint = pprint.PrettyPrinter().pprint
 
-sob_email = re.compile('Signed-off-by: (.+) <(.+@.+)>')
+sob_email = re.compile('(Signed-off|Reviewed)-by: (.+) <(.+@.+)>')
 developers = {}
 groups = []
 
 def list_signed_offs(message, author):
     sob = []
+    emails = []
     for line in message.splitlines():
-        if line.startswith('Signed-off-by:'):
+        if line.startswith('Signed-off-by:') or line.startswith('Reviewed-by:'):
             m = sob_email.match(line)
             if not m:
                 continue
-            name = m.group(1)
-            email = m.group(2)
-            if email != author and email not in sob:
+            name = m.group(2)
+            email = m.group(3)
+            if email != author and email not in emails:
                 sob.append({'name': name, 'email': email})
+                emails.append(email)
     return sob
 
 # returns dev information if the group name corresponds to email,date, or None
