@@ -116,6 +116,9 @@ def main(args):
 
     # create default group if it's missing
     for d in developers:
+        # escape email addresses since we will use them in regexp later
+        developers[d]['emails'] = list(map(re.escape, developers[d]['emails']))
+
         if 'groups' not in developers[d].keys():
             if args.verbose:
                 print("Missing groups for %s, adding default group" % d)
