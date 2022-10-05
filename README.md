@@ -57,3 +57,11 @@ Here is a template identity file:
       groups:
         - linaro-teamC:
             start: 2020-01-01
+
+Note: It is possible to use a Python regular expression in the 'emails' field, using this syntax:
+emails:
+    - /<reg expressions>/
+
+E.g.
+emails:
+    - /.*@linaro.org/

@@ -97,6 +97,14 @@ def get_subsystem(commit):
 
     return list(subsystems)
 
+# in the YAML file, we can use regexp, they need to be marked with /<regex>/
+def escape_email(email):
+    m = re.match("^/(.*)/$", email)
+    if m:
+        return m.group(1)
+    else:
+        return re.escape(email)
+
 def main(args):
     num_author = 0
     num_non_author_sob = 0
@@ -117,7 +125,7 @@ def main(args):
     # create default group if it's missing
     for d in developers:
         # escape email addresses since we will use them in regexp later
-        developers[d]['emails'] = list(map(re.escape, developers[d]['emails']))
+        developers[d]['emails'] = list(map(escape_email, developers[d]['emails']))
 
         if 'groups' not in developers[d].keys():
             if args.verbose:
