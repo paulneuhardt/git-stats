@@ -299,7 +299,7 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--show",
                         help="List of results/stats to display",
                         type=str,
-                        choices=['summary', 'commits', 'signedoff', 'header', 'subsystems'],
+                        choices=['summary', 'commits', 'signedoff', 'subsystems'],
                         default=['summary'],
                         nargs='*')
     parser.add_argument("-c", "--comment",
