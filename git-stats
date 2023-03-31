@@ -229,18 +229,32 @@ def main(args):
             committers[committer['name']] = committers.get(committer['name'], 0) + 1
 
     if 'commits' in args.show:
+        if args.comment:
+            for a in authors:
+                a.update({'Comment': args.comment})
+
         with open('commits_author.csv', 'w', newline='') as f:
             writer = csv.DictWriter(f, authors[0].keys())
             writer.writeheader()
             writer.writerows(authors)
 
     if 'signedoff' in args.show:
+        if args.comment:
+            for a in sobs:
+                a.update({'Comment': args.comment})
+
         with open('commits_signedoff.csv', 'w', newline='') as f:
             writer = csv.DictWriter(f, sobs[0].keys())
             writer.writeheader()
             writer.writerows(sobs)
 
     if 'subsystems' in args.show:
+        if args.comment:
+            for a in subsystems_author:
+                a.update({'Comment': args.comment})
+            for a in subsystems_maintainer:
+                a.update({'Comment': args.comment})
+
         with open('subsystems_author.csv', 'w', newline='') as f:
             writer = csv.DictWriter(f, subsystems_author[0].keys())
             writer.writeheader()
@@ -288,5 +302,8 @@ if __name__ == '__main__':
                         choices=['summary', 'commits', 'signedoff', 'header', 'subsystems'],
                         default=['summary'],
                         nargs='*')
+    parser.add_argument("-c", "--comment",
+                        help="Add a comment/tag to each row/item",
+                        type=str)
 
     main(parser.parse_args())
