@@ -8,8 +8,8 @@ import pprint
 import argparse
 import yaml
 import datetime
-from collections import defaultdict
 from pathlib import Path
+import csv
 
 pprint = pprint.PrettyPrinter().pprint
 
@@ -66,6 +66,12 @@ def team_commits(refspec):
         if author or non_author_sob or committer:
             yield((commit, author, committer, non_author_sob))
 
+def count_stats(data, key):
+    stats = {}
+    for x in set([a[key] for a in data]):
+        stats[x]= sum(1 for a in data if a[key] == x)
+    return stats
+
 def get_subsystem(commit):
     files = set()
     subsystems = set()
@@ -109,12 +115,11 @@ def main(args):
     num_author = 0
     num_non_author_sob = 0
     num_committer = 0
-    stats = defaultdict(dict)
-    authors = {}
+    authors = []
     committers = {}
-    sobs = {}
-    subsystems_author = {}
-    subsystems_maintainer = {}
+    sobs = []
+    subsystems_author = []
+    subsystems_maintainer = []
 
     # TODO: we should probably split developers and organization in 2
     # different objects, so that we check developers first, in case there are multiple matches
@@ -141,13 +146,6 @@ def main(args):
         print(groups)
         print(args.show)
 
-    stats['authors']['insertions'] = 0
-    stats['authors']['deletions'] = 0
-    stats['authors']['lines'] = 0
-    stats['non_author_sob']['insertions'] = 0
-    stats['non_author_sob']['deletions'] = 0
-    stats['non_author_sob']['lines'] = 0
-
     commits = team_commits(args.refspec)
     for c in commits:
         commit, author, committer, non_author_sob = c
@@ -156,92 +154,129 @@ def main(args):
             if author or non_author_sob or committer:
                 print(commit)
 
+        if 'subsystems' in args.show:
+            subsystems = get_subsystem(commit)
+        else:
+            subsystems = []
+
         if author:
-            num_author = num_author + 1
-            authors[author['name']] = authors.get(author['name'], 0) + 1
-            stats['authors']['insertions'] += commit.stats.total['insertions']
-            stats['authors']['deletions'] += commit.stats.total['deletions']
-            stats['authors']['lines'] += commit.stats.total['lines']
-            if 'subsystems' in args.show:
-                for s in get_subsystem(commit):
-                    subsystems_author[s] = subsystems_author.get(s, 0) + 1
+            authors.append({
+                'Group' : author['group'],
+                'SHA' : str(commit),
+                'Author': author['name'],
+                'Year (author)' : datetime.date.fromtimestamp(commit.authored_date).year,
+                'Month (author)' : datetime.date.fromtimestamp(commit.authored_date).month,
+                'Year (commit)' : datetime.date.fromtimestamp(commit.committed_date).year,
+                'Month (commit)' : datetime.date.fromtimestamp(commit.committed_date).month,
+                'Files' : commit.stats.total['files'],
+                'Insertions' : commit.stats.total['insertions'],
+                'Deletions' : commit.stats.total['deletions'],
+                'Total' : commit.stats.total['lines'],
+                'Subsystem' : ';'.join(subsystems)})
+
+            for s in subsystems:
+                subsystems_author.append({
+                    'Subsystem' : s,
+                    'Group' : author['group'],
+                    'SHA' : str(commit),
+                    'Author': author['name'],
+                    'Year (author)' : datetime.date.fromtimestamp(commit.authored_date).year,
+                    'Month (author)' : datetime.date.fromtimestamp(commit.authored_date).month,
+                    'Year (commit)' : datetime.date.fromtimestamp(commit.committed_date).year,
+                    'Month (commit)' : datetime.date.fromtimestamp(commit.committed_date).month,
+                    'Files' : commit.stats.total['files'],
+                    'Insertions' : commit.stats.total['insertions'],
+                    'Deletions' : commit.stats.total['deletions'],
+                    'Total' : commit.stats.total['lines']})
 
         if non_author_sob:
-            num_non_author_sob = num_non_author_sob + 1
             for a in non_author_sob:
-                sobs[a['name']] = sobs.get(a['name'], 0) + 1
-            stats['non_author_sob']['insertions'] += commit.stats.total['insertions']
-            stats['non_author_sob']['deletions'] += commit.stats.total['deletions']
-            stats['non_author_sob']['lines'] += commit.stats.total['lines']
-            if 'subsystems' in args.show:
-                for s in get_subsystem(commit):
-                    subsystems_maintainer[s] = subsystems_maintainer.get(s, 0) + 1
+                sobs.append({
+                    'Signed-off Group' : a['group'],
+                    'Signed-off Name' : a['name'],
+                    'Author Group' : author['group'] if author else 'n/a',
+                    'SHA' : str(commit),
+                    'Author': author['name'] if author else commit.author.name.replace(',', '/'),
+                    'Year (author)' : datetime.date.fromtimestamp(commit.authored_date).year,
+                    'Month (author)' : datetime.date.fromtimestamp(commit.authored_date).month,
+                    'Year (commit)' : datetime.date.fromtimestamp(commit.committed_date).year,
+                    'Month (commit)' : datetime.date.fromtimestamp(commit.committed_date).month,
+                    'Files' : commit.stats.total['files'],
+                    'Insertions' : commit.stats.total['insertions'],
+                    'Deletions' : commit.stats.total['deletions'],
+                    'Total' : commit.stats.total['lines'],
+                    'Subsystem' : ';'.join(subsystems)})
+
+                for s in subsystems:
+                    subsystems_maintainer.append({
+                        'Subsystem' : s,
+                        'Signed-off Group' : a['group'],
+                        'Signed-off Name' : a['name'],
+                        'Author Group' : author['group'] if author else 'n/a',
+                        'SHA' : str(commit),
+                        'Author': author['name'] if author else commit.author.name.replace(',', '/'),
+                        'Year (author)' : datetime.date.fromtimestamp(commit.authored_date).year,
+                        'Month (author)' : datetime.date.fromtimestamp(commit.authored_date).month,
+                        'Year (commit)' : datetime.date.fromtimestamp(commit.committed_date).year,
+                        'Month (commit)' : datetime.date.fromtimestamp(commit.committed_date).month,
+                        'Files' : commit.stats.total['files'],
+                        'Insertions' : commit.stats.total['insertions'],
+                        'Deletions' : commit.stats.total['deletions'],
+                        'Total' : commit.stats.total['lines']})
 
         if committer:
             num_committer = num_committer + 1
             committers[committer['name']] = committers.get(committer['name'], 0) + 1
 
-        if 'signedoff' in args.show and non_author_sob:
-            if 'header' in args.show:
-                try:
-                    csvHeader
-                except NameError:
-                    print("Signed-off Group, Signed-off Name, Author Group, SHA, Author, Year (author), Month (author), Year (commit), Month (commit), Files, Insertions, Deletions, Total")
-                    csvHeader = True
+    if 'commits' in args.show:
+        if args.comment:
+            for a in authors:
+                a.update({'Comment': args.comment})
 
-            for a in non_author_sob:
-                print("%s, %s, %s, %s, %s , %s , %s , %s , %s , %s , %s , %s , %s" %
-                      (a['group'],
-                       a['name'],
-                       author['group'] if author else 'n/a',
-                       commit,
-                       author['name'] if author else commit.author.name.replace(',', '/'),
-                       datetime.date.fromtimestamp(commit.authored_date).year,
-                       datetime.date.fromtimestamp(commit.authored_date).month,
-                       datetime.date.fromtimestamp(commit.committed_date).year,
-                       datetime.date.fromtimestamp(commit.committed_date).month,
-                       commit.stats.total['files'],
-                       commit.stats.total['insertions'],
-                       commit.stats.total['deletions'],
-                       commit.stats.total['lines']))
+        with open('commits_author.csv', 'w', newline='') as f:
+            writer = csv.DictWriter(f, authors[0].keys())
+            writer.writeheader()
+            writer.writerows(authors)
 
-        if 'commits' in args.show and author:
-            if 'header' in args.show:
-                try:
-                    csvHeader
-                except NameError:
-                    print("Group, SHA, Author, Year (author), Month (author), Year (commit), Month (commit), Files, Insertions, Deletions, Total")
-                    csvHeader = True
+    if 'signedoff' in args.show:
+        if args.comment:
+            for a in sobs:
+                a.update({'Comment': args.comment})
 
-            print("%s , %s , %s , %s , %s , %s , %s , %s , %s , %s , %s" %
-                  (author['group'],
-                   commit,
-                   author['name'],
-                   datetime.date.fromtimestamp(commit.authored_date).year,
-                   datetime.date.fromtimestamp(commit.authored_date).month,
-                   datetime.date.fromtimestamp(commit.committed_date).year,
-                   datetime.date.fromtimestamp(commit.committed_date).month,
-                   commit.stats.total['files'],
-                   commit.stats.total['insertions'],
-                   commit.stats.total['deletions'],
-                   commit.stats.total['lines']))
-
-    if 'summary' in args.show:
-        print('Authored Total: %d, %d insertions(+), %d deletions(-), %d total' %
-              (num_author, stats['authors']['insertions'], stats['authors']['deletions'], stats['authors']['lines']))
-        for n in sorted(authors, key=authors.get, reverse=True): print("%s: %s" % (n, authors[n]))
-
-        print('\nNon-author-sob Total: %d, %d insertions(+), %d deletions(-), %d total' %
-              (num_non_author_sob, stats['non_author_sob']['insertions'], stats['non_author_sob']['deletions'], stats['non_author_sob']['lines']))
-        for n in sorted(sobs, key=sobs.get, reverse=True): print("%s: %s" % (n, sobs[n]))
-        print('\nCommitted Total: %d' % num_committer)
-        for n in sorted(committers, key=committers.get, reverse=True): print("%s: %s" % (n, committers[n]))
+        with open('commits_signedoff.csv', 'w', newline='') as f:
+            writer = csv.DictWriter(f, sobs[0].keys())
+            writer.writeheader()
+            writer.writerows(sobs)
 
     if 'subsystems' in args.show:
-        print('\nSubsystems (author): %d' % sum(subsystems_author.values()))
-        for n in sorted(subsystems_author, key=subsystems_author.get, reverse=True): print("%s: %s" % (n, subsystems_author[n]))
-        print('\nSubsystems (maintainer): %d' % sum(subsystems_maintainer.values()))
-        for n in sorted(subsystems_maintainer, key=subsystems_maintainer.get, reverse=True): print("%s: %s" % (n, subsystems_maintainer[n]))
+        if args.comment:
+            for a in subsystems_author:
+                a.update({'Comment': args.comment})
+            for a in subsystems_maintainer:
+                a.update({'Comment': args.comment})
+
+        with open('subsystems_author.csv', 'w', newline='') as f:
+            writer = csv.DictWriter(f, subsystems_author[0].keys())
+            writer.writeheader()
+            writer.writerows(subsystems_author)
+
+        with open('subsystems_maintainer.csv', 'w', newline='') as f:
+            writer = csv.DictWriter(f, subsystems_maintainer[0].keys())
+            writer.writeheader()
+            writer.writerows(subsystems_maintainer)
+
+    if 'summary' in args.show:
+        stats = count_stats(authors, 'Author')
+        print('Authored Total: %d, %d insertions(+), %d deletions(-), %d total' %
+              (len(authors), sum(a['Insertions'] for a in authors),
+               sum(a['Deletions'] for a in authors), sum(a['Total'] for a in authors)))
+        for n in sorted(stats, key=stats.get, reverse=True): print("%s: %s" % (n, stats[n]))
+
+        stats = count_stats(sobs, 'Signed-off Name')
+        print('\nNon-author-sob Total: %d, %d insertions(+), %d deletions(-), %d total' %
+              (len(sobs), sum(a['Insertions'] for a in sobs),
+               sum(a['Deletions'] for a in sobs), sum(a['Total'] for a in sobs)))
+        for n in sorted(stats, key=stats.get, reverse=True): print("%s: %s" % (n, stats[n]))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -264,8 +299,11 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--show",
                         help="List of results/stats to display",
                         type=str,
-                        choices=['summary', 'commits', 'signedoff', 'header', 'subsystems'],
+                        choices=['summary', 'commits', 'signedoff', 'subsystems'],
                         default=['summary'],
                         nargs='*')
+    parser.add_argument("-c", "--comment",
+                        help="Add a comment/tag to each row/item",
+                        type=str)
 
     main(parser.parse_args())
